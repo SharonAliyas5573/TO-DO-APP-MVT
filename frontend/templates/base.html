@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-theme="cupcake">
+<html data-theme="corporate">
 {% load static %} 
 <head>
     <meta charset="UTF-8">
@@ -22,7 +22,7 @@
             <button class="btn btn-success" onclick="my_modal_1.showModal()" style="border-radius: 12%;">New Task</button>
           </li>
           <li>
-            <button class="btn" style="border-radius: 12%;">Log out</button>
+            <button class="btn" style="border-radius: 12%;" onclick="location.href='{% url 'logout' %}'">Log out</button>
           </li>
         </ul>
       </div>

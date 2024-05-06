@@ -41,7 +41,7 @@
         {% for task in tasks %}
         <tr>
           <td>
-            <input type="checkbox" id="task-{{ task.id }}" {% if task.completed %}checked{% endif %} onclick="updateTask({{ task.id }})">
+            <input class="checkbox"type="checkbox" id="task-{{ task.id }}" {% if task.completed %}checked{% endif %} onclick="updateTask({{ task.id }})">
           </td>
           <td>{{ task.title }}</td>
           <td>{{ task.description }}</td>
