@@ -12,7 +12,7 @@ from .serializers import TaskSerializer
 
 
 @csrf_exempt
-# @login_required
+@login_required
 def task_id(request, id=None):
     if id is not None:
         task = Task.objects.get(id=id)
@@ -22,7 +22,7 @@ def task_id(request, id=None):
 
 
 @csrf_exempt
-# @login_required
+@login_required
 def task_list(request):
     status = request.GET.get("status", "All")
     priority = request.GET.get("priority", "All")
@@ -44,7 +44,7 @@ def task_list(request):
     return render(request, "todo_list.html", {"tasks": serializer.data})
 
 @csrf_exempt
-# @login_required
+@login_required
 def task_create(request):
     if request.method == "POST":
         title = request.POST.get("title")
@@ -74,7 +74,7 @@ def task_create(request):
 
 
 @csrf_exempt
-# @login_required
+@login_required
 def task_update(request, id):
     try:
         task = Task.objects.get(id=id)
@@ -104,7 +104,7 @@ def task_update(request, id):
 
 
 @csrf_exempt
-# @login_required
+@login_required
 def task_complete(request, id):
     if request.method == "POST":
         try:
