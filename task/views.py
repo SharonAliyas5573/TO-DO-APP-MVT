@@ -75,32 +75,39 @@ def task_create(request):
 
 @csrf_exempt
 @login_required
-def task_update(request, id):
-    try:
-        task = Task.objects.get(id=id)
-    except Task.DoesNotExist:
-        return JsonResponse({"error": "Task does not exist"}, status=404)
-
-    if task.deadline < timezone.now():
-        raise ValidationError("Cannot edit an expired task")
-
+def task_update(request):
     if request.method == "POST":
-        data = json.loads(request.body)
+        title = request.POST.get('title')
+        description = request.POST.get('description')
+        deadline = request.POST.get('deadline')
+        priority = request.POST.get('priority')
+        id = request.POST.get('task_id')
         try:
-            if "deadline" in data:
-                data["deadline"] = parse_datetime(data["deadline"])
-                if data["deadline"] is None:
-                    return JsonResponse({"error": "Invalid date format"}, status=400)
+            task = Task.objects.get(id=id)
+        except Task.DoesNotExist:
+            return JsonResponse({"error": "Task does not exist"}, status=404)
 
-            for key, value in data.items():
-                if hasattr(task, key):
-                    setattr(task, key, value)
-            task.save()
-            return JsonResponse(data, status=200)
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=400)
+        if task.deadline < timezone.now():
+            raise ValidationError("Cannot edit an expired task")
+
+        if title is not None and title != '':
+            task.title = title
+        if description is not None and description != '':
+            task.description = description
+        if deadline is not None and deadline != '':
+            task.deadline = deadline
+        if priority is not None and priority != '':
+            task.priority = priority
+
+        task.save()
+
+        return redirect('task_list')
     else:
-        return JsonResponse({"error": "Invalid request method"}, status=400)
+        return HttpResponse('Invalid request method')
+    
+
+   
+    
 
 @csrf_exempt
 @login_required
