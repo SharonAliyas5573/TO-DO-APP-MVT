@@ -7,85 +7,123 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.dateparse import parse_datetime
+from django.http import HttpResponse
+from .serializers import TaskSerializer
+
+
+@csrf_exempt
+# @login_required
+def task_id(request, id=None):
+    if id is not None:
+        task = Task.objects.get(id=id)
+        serializer = TaskSerializer(task)
+        return JsonResponse(serializer.data)
 
 
 
-@login_required
+@csrf_exempt
+# @login_required
 def task_list(request):
-    queryset = Task.objects.filter(user=request.user)
-    status = request.GET.get('status', None)
-    priority = request.GET.get('priority', None)
-    
-    if status is not None:
-        if status == 'completed':
-            queryset = queryset.filter(completed=True)
-        elif status == 'expired':
-            queryset = queryset.filter(deadline__lt=timezone.now())
-        elif status == 'active':
-            queryset = queryset.filter(completed=False, deadline__gte=timezone.now())
-    
-    if priority is not None:
-        priorities = priority.split(',')
-        queryset = queryset.filter(priority__in=priorities)
+    status = request.GET.get("status", "All")
+    priority = request.GET.get("priority", "All")
+    tasks = Task.objects.filter(user=request.user)
 
-    return render(request, 'task_list.html', {'tasks': queryset.order_by('-deadline')})
+    if status != "All":
+        if status == "completed":
+            tasks = tasks.filter(completed=True)
+        elif status == "expired":
+            tasks = tasks.filter(deadline__lt=timezone.now())
+        elif status == "active":
+            tasks = tasks.filter(completed=False, deadline__gte=timezone.now())
+
+    if priority != "All":
+        tasks = tasks.filter(priority=priority)
+
+    tasks = tasks.order_by("-deadline")
+    serializer = TaskSerializer(tasks, many=True)
+    return render(request, "todo_list.html", {"tasks": serializer.data})
 
 @csrf_exempt
-@login_required
+# @login_required
 def task_create(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
+    if request.method == "POST":
+        title = request.POST.get("title")
+        description = request.POST.get("description")
+        deadline = request.POST.get("deadline")
+        priority = request.POST.get("priority")
 
-        if not all(key in data for key in ('title', 'description', 'deadline', 'priority', 'completed')):
-            return JsonResponse({'error': 'All fields are required'}, status=400)
+        if not all([title, description, deadline, priority]):
+            return JsonResponse({"error": "All fields are required"}, status=400)
 
-        data['deadline'] = parse_datetime(data['deadline'])
-        if data['deadline'] is None:
-            return JsonResponse({'error': 'Invalid date format'}, status=400)
+        deadline = parse_datetime(deadline)
+        if deadline is None:
+            return JsonResponse({"error": "Invalid date format"}, status=400)
 
-        data['user'] = request.user
-        task = Task.objects.create(**data)
+        task = Task.objects.create(
+            title=title,
+            description=description,
+            deadline=deadline,
+            priority=priority,
+            completed=False,
+            user=request.user,
+        )
 
-        return JsonResponse({'message': 'Task created successfully'}, status=201)
+        return JsonResponse({"success": True, "message": "Task created successfully"})
     else:
-        return JsonResponse({'error': 'Invalid request method'}, status=400)
+        return JsonResponse({"success": False, "message": "Invalid request method"})
+
 
 @csrf_exempt
-@login_required
+# @login_required
 def task_update(request, id):
-    task = Task.objects.get(id=id)
+    try:
+        task = Task.objects.get(id=id)
+    except Task.DoesNotExist:
+        return JsonResponse({"error": "Task does not exist"}, status=404)
+
     if task.deadline < timezone.now():
-        raise ValidationError('Cannot edit an expired task')
+        raise ValidationError("Cannot edit an expired task")
 
-    if request.method == 'POST':
+    if request.method == "POST":
         data = json.loads(request.body)
+        try:
+            data = json.loads(request.body)
+            if "deadline" in data:
+                data["deadline"] = parse_datetime(data["deadline"])
+            if data["deadline"] is None:
+                return JsonResponse({"error": "Invalid date format"}, status=400)
 
-        if not all(key in data for key in ('title', 'description', 'deadline', 'priority', 'completed')):
-            return JsonResponse({'error': 'All fields are required'}, status=400)
-
-        data['deadline'] = parse_datetime(data['deadline'])
-        if data['deadline'] is None:
-            return JsonResponse({'error': 'Invalid date format'}, status=400)
-
-        for key, value in data.items():
-            setattr(task, key, value)
-        task.save()
-
-        return JsonResponse({'message': 'Task updated successfully'}, status=200)
+            for key, value in data.items():
+                setattr(task, key, value)
+            task.save()
+            return JsonResponse(data, status=200)
+        except Exception as e:
+                return JsonResponse({"error": str(e)}, status=400)
     else:
-        task_data = {
-            'title': task.title,
-            'description': task.description,
-            'deadline': task.deadline.isoformat(),
-            'priority': task.priority,
-            'completed': task.completed
-        }
-        return JsonResponse(task_data, status=200)
-    
+        return JsonResponse({"error": "Invalid request method"}, status=400)
 
+
+@csrf_exempt
+# @login_required
+def task_complete(request, id):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            completed = data.get('completed', False)  # Default to False if 'completed' is not provided
+            task = Task.objects.get(id=id)
+            task.completed = completed
+            task.save()
+            return JsonResponse({"message": "Task marked as complete"}, status=200)
+        except Task.DoesNotExist:
+            return JsonResponse({"error": "Task does not exist"}, status=404)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    else:
+        return JsonResponse({"error": "Invalid request method"}, status=400)
+    
+    
 @login_required
 def task_delete(request, id):
     task = Task.objects.get(id=id)
     task.delete()
-    return redirect('task_list')
-
+    return redirect("task_list")

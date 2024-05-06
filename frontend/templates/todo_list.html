@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<form method="get" action="{% url 'task_list' %}">
+    
+  <select name="status" class="select w-full max-w-xs">
+      <option disabled selected>Status</option>
+      <option value="active">Active</option>
+      <option value="expired">Expired</option>
+      <option value="completed">Completed</option>
+  </select>
+  <select name="priority" class="select w-full max-w-xs">
+      <option disabled selected>Priority</option>
+      <option value="H">High</option>
+      <option value="M">Medium</option>
+      <option value="L">Low</option>
+  </select>
+  <button
+      class="select-none rounded-lg bg-green-500 py-3 px-6 text-center align-middle font-sans text-xs font-bold uppercase text-white shadow-md shadow-green-500/20 transition-all hover:shadow-lg hover:shadow-green-500/40 focus:opacity-[0.85] focus:shadow-none active:opacity-[0.85] active:shadow-none disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none"
+      type="submit"
+  >
+      Apply
+  </button>
+</form>
+  <div class="overflow-x-auto">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Completed</th>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Created at</th>
+          <th>Deadline</th>
+          <th>Priority</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for task in tasks %}
+        <tr>
+          <td>
+            <input type="checkbox" id="task-{{ task.id }}" {% if task.completed %}checked{% endif %} onclick="updateTask({{ task.id }})">
+          </td>
+          <td>{{ task.title }}</td>
+          <td>{{ task.description }}</td>
+          <td>{{ task.formatted_created_date}}</td>
+          <td>{{ task.formatted_deadline }}</td>          
+          <td>{{ task.priority }}</td>
+          <td>{{ task.status }}</td>
+          <td>
+            <a href="#" onclick="fillTaskForm('{{ task.id }}', '{{ task.title|escapejs }}', '{{ task.description|escapejs }}', '{{ task.formatted_deadline }}', '{{ task.priority }}')" style="border-radius: 12%;" class="btn btn-primary">Update</a>
+
+                  <dialog id="my_modal_2" class="modal">
+                    <div class="modal-box">
+                        <h3 class="font-bold text-lg">Update Task</h3>
+                        <form method="post" id="task-form">
+                          {% csrf_token %}
+                          <div class="flex flex-col py-4">
+                            <input type="hidden" id="update_task_id" name="task_id" value="{{ task.id }}">
+                            <label for="title">Title:</label>
+                            <input type="text" style="border-radius: 12%;" class="input input-bordered w-full max-w-xs" id="update_title" name="title" required>
+                            <label for="description" class="mt-4">Description:</label>
+                            <textarea style="border-radius: 12%;" class="textarea textarea-bordered w-full max-w-xs" id="update_description" name="description" required></textarea>
+                            <label for="deadline" class="mt-4">Deadline:</label>
+                            <input  style="border-radius: 12%;" type="date" class="input input-bordered w-full max-w-xs" id="update_deadline" name="deadline" required>
+                            <label for="priority" class="mt-4">Priority:</label>
+                            <select  style="border-radius: 12%;" id="priority" class="select select-bordered w-full max-w-xs" name="update_priority" required>
+                              <option value="H">High</option>
+                              <option value="M">Medium</option>
+                              <option value="L">Low</option>
+                            </select>
+                          </div>
+                          <div class="modal-action mt-4">
+                            <button type="submit" class="btn btn-success">Update</button>
+                            <button type="button" class="btn-error btn" onclick="my_modal_2.close()">Close</button>
+                          </div>
+                        </form>
+                    </div>
+                  </dialog>
+                  
+                      
+            <a href="{% url 'task_delete' task.id %}" style="border-radius: 12%;" class="btn btn-error">Delete</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6">No tasks found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+</div>
+
+
+<script>
+  function fillTaskForm(taskId, title, description, deadline, priority) {
+    console.log(`Task ID: ${taskId}`); // Debugging line
+    console.log(`Title: ${title}`); // Debugging line
+    const myModal = document.getElementById('my_modal_2');
+    myModal.showModal();
+
+    // Construct the HTML content for the form
+    const formHTML = `
+        <h3 class="font-bold text-lg">Update Task</h3>
+        <form method="post" id="task-form">
+            {% csrf_token %}
+            <div class="flex flex-col py-4">
+                <input type="hidden" id="update_task_id" name="task_id" value="${taskId}">
+                <label for="title">Title:</label>
+                <input type="text" style="border-radius: 12%;" class="input input-bordered w-full max-w-xs" id="update_title" name="title" required value="${title}">
+                <label for="description" class="mt-4">Description:</label>
+                <textarea style="border-radius: 12%;" class="textarea textarea-bordered w-full max-w-xs" id="update_description" name="description" required>${description}</textarea>
+                <label for="deadline" class="mt-4">Deadline:</label>
+                <input style="border-radius: 12%;" type="date" class="input input-bordered w-full max-w-xs" id="update_deadline" name="deadline" required value="${deadline}">
+                <label for="priority" class="mt-4">Priority:</label>
+                <select style="border-radius: 12%;" id="update_priority" class="select select-bordered w-full max-w-xs" name="update_priority" required>
+                    <option value="H" ${priority === 'H' ? 'selected' : ''}>High</option>
+                    <option value="M" ${priority === 'M' ? 'selected' : ''}>Medium</option>
+                    <option value="L" ${priority === 'L' ? 'selected' : ''}>Low</option>
+                </select>
+            </div>
+            <div class="modal-action mt-4">
+                <button type="submit" class="btn btn-success">Update</button>
+                <button type="button" class="btn-error btn" onclick="my_modal_2.close()">Close</button>
+            </div>
+        </form>
+    `;
+
+    // Set the inner HTML of the modal box to the constructed form HTML
+    const modalBox = myModal.querySelector('.modal-box');
+    modalBox.innerHTML = formHTML;
+}
+
+</script>
+
+
+
+<script>
+  function updateTask(id) {
+    const checkbox = document.getElementById(`task-${id}`);
+    const completed = checkbox.checked;
+
+    console.log(`Task ID: ${id} - Completed: ${completed}`); // Debugging line
+
+    fetch(`/tasks/${id}/complete/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({ completed: completed })
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok.');
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log(data);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+  }
+</script>
+    
+
+{% endblock %}
+
+

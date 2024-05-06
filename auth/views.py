@@ -18,12 +18,10 @@ def register(request):
 
         user = User.objects.create_user(username=username, password=password)
         
-        # Automatically login the user after registration
-        auth_login(request, user)
-
-        return redirect('home')  # Assuming 'home' is the name of your home page URL
+        
+        return redirect('login')  
     else:
-        return render(request, 'register.html')
+        return render(request, 'base.html')
 
 @csrf_exempt
 def login(request):
@@ -34,8 +32,12 @@ def login(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             auth_login(request, user)
-            return redirect('home')  # Assuming 'home' is the name of your home page URL
+            return redirect('task_list')  
         else:
             return JsonResponse({'error': 'Invalid username or password'}, status=400)
     else:
         return render(request, 'login.html')
+    
+def logout(request):
+    request.user.logout()
+    return redirect('login')  

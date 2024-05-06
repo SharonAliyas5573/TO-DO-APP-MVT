@@ -73,6 +73,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "TO_DO_MVT.wsgi.application"
 
+SESSION_COOKIE_AGE = 1209600
+SESSION_COOKIE_SAMESITE = 'Lax'
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
