@@ -41,7 +41,7 @@ def task_list(request):
 
     tasks = tasks.order_by("-deadline")
     serializer = TaskSerializer(tasks, many=True)
-    return render(request, "todo_list.html", {"tasks": serializer.data})
+    return render(request, "todo.html", {"tasks": serializer.data})
 
 @csrf_exempt
 @login_required
@@ -87,21 +87,20 @@ def task_update(request, id):
     if request.method == "POST":
         data = json.loads(request.body)
         try:
-            data = json.loads(request.body)
             if "deadline" in data:
                 data["deadline"] = parse_datetime(data["deadline"])
-            if data["deadline"] is None:
-                return JsonResponse({"error": "Invalid date format"}, status=400)
+                if data["deadline"] is None:
+                    return JsonResponse({"error": "Invalid date format"}, status=400)
 
             for key, value in data.items():
-                setattr(task, key, value)
+                if hasattr(task, key):
+                    setattr(task, key, value)
             task.save()
             return JsonResponse(data, status=200)
         except Exception as e:
-                return JsonResponse({"error": str(e)}, status=400)
+            return JsonResponse({"error": str(e)}, status=400)
     else:
         return JsonResponse({"error": "Invalid request method"}, status=400)
-
 
 @csrf_exempt
 @login_required
